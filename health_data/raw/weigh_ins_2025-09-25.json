@@ -1,0 +1,46 @@
+{
+  "startDate": "2025-09-25",
+  "endDate": "2025-09-25",
+  "dateWeightList": [
+    {
+      "samplePk": 1758779715096,
+      "date": 1758804883000,
+      "calendarDate": "2025-09-25",
+      "weight": 86750.0,
+      "bmi": 29.700000762939453,
+      "bodyFat": 27.7,
+      "bodyWater": 52.8,
+      "boneMass": 5000,
+      "muscleMass": 33979,
+      "physiqueRating": null,
+      "visceralFat": null,
+      "metabolicAge": null,
+      "sourceType": "INDEX_SCALE",
+      "timestampGMT": 1758779683000,
+      "weightDelta": -1299.9999999999973,
+      "trend": {
+        "weight": 87617.5,
+        "weightChange": -1313.0,
+        "bmi": 29.997,
+        "bodyFat": 27.977001,
+        "muscleMass": 34319,
+        "boneMass": 5050,
+        "bodyWater": 53.328
+      }
+    }
+  ],
+  "totalAverage": {
+    "from": 1758758400000,
+    "until": 1758844799999,
+    "weight": 86750.0,
+    "bmi": 29.700000762939453,
+    "bodyFat": 27.7,
+    "bodyWater": 52.8,
+    "boneMass": 5000,
+    "muscleMass": 33979,
+    "physiqueRating": null,
+    "visceralFat": null,
+    "metabolicAge": null,
+    "trend": null
+  }
+}

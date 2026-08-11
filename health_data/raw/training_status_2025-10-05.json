@@ -1,0 +1,105 @@
+{
+  "userId": 77091127,
+  "mostRecentVO2Max": {
+    "userId": 77091127,
+    "generic": {
+      "calendarDate": "2025-10-01",
+      "vo2MaxPreciseValue": 36.5,
+      "vo2MaxValue": 36.0,
+      "fitnessAge": null,
+      "fitnessAgeDescription": null,
+      "maxMetCategory": 0
+    },
+    "cycling": null,
+    "heatAltitudeAcclimation": {
+      "calendarDate": "2025-10-05",
+      "altitudeAcclimationDate": "2025-10-05",
+      "previousAltitudeAcclimationDate": "2025-10-05",
+      "heatAcclimationDate": "2025-10-05",
+      "previousHeatAcclimationDate": "2025-10-04",
+      "altitudeAcclimation": 0,
+      "previousAltitudeAcclimation": 0,
+      "heatAcclimationPercentage": 47,
+      "previousHeatAcclimationPercentage": 48,
+      "heatTrend": "DEACCLIMATIZING",
+      "altitudeTrend": null,
+      "currentAltitude": 29,
+      "previousAltitude": 0,
+      "acclimationPercentage": 0,
+      "previousAcclimationPercentage": 0,
+      "altitudeAcclimationLocalTimestamp": "2025-10-05T23:54:11.0"
+    }
+  },
+  "mostRecentTrainingLoadBalance": {
+    "userId": 77091127,
+    "metricsTrainingLoadBalanceDTOMap": {
+      "3428401926": {
+        "calendarDate": "2025-10-05",
+        "deviceId": 3428401926,
+        "monthlyLoadAerobicLow": 1328.0546,
+        "monthlyLoadAerobicHigh": 287.48703,
+        "monthlyLoadAnaerobic": 3398.7896,
+        "monthlyLoadAerobicLowTargetMin": 614,
+        "monthlyLoadAerobicLowTargetMax": 1668,
+        "monthlyLoadAerobicHighTargetMin": 1317,
+        "monthlyLoadAerobicHighTargetMax": 2370,
+        "monthlyLoadAnaerobicTargetMin": 351,
+        "monthlyLoadAnaerobicTargetMax": 1053,
+        "trainingBalanceFeedbackPhrase": "AEROBIC_HIGH_SHORTAGE",
+        "primaryTrainingDevice": true
+      }
+    },
+    "recordedDevices": [
+      {
+        "deviceId": 3428401926,
+        "imageURL": "https://res.garmin.com/en/products/010-02638-J0/v/c1_01_md.png",
+        "deviceName": "Forerunner 955",
+        "category": 0
+      }
+    ]
+  },
+  "mostRecentTrainingStatus": {
+    "userId": 77091127,
+    "latestTrainingStatusData": {
+      "3428401926": {
+        "calendarDate": "2025-10-05",
+        "sinceDate": "2025-10-04",
+        "weeklyTrainingLoad": null,
+        "trainingStatus": 8,
+        "timestamp": 1759676963000,
+        "deviceId": 3428401926,
+        "loadTunnelMin": null,
+        "loadTunnelMax": null,
+        "loadLevelTrend": null,
+        "sport": null,
+        "subSport": null,
+        "fitnessTrendSport": "NONE",
+        "fitnessTrend": 0,
+        "trainingStatusFeedbackPhrase": "STRAINED_3",
+        "trainingPaused": false,
+        "acuteTrainingLoadDTO": {
+          "acwrPercent": 12,
+          "acwrStatus": "LOW",
+          "acwrStatusFeedback": "FEEDBACK_1",
+          "dailyTrainingLoadAcute": 484,
+          "maxTrainingLoadChronic": 2124.0,
+          "minTrainingLoadChronic": 1132.8,
+          "dailyTrainingLoadChronic": 1416,
+          "dailyAcuteChronicWorkloadRatio": 0.3
+        },
+        "primaryTrainingDevice": true
+      }
+    },
+    "recordedDevices": [
+      {
+        "deviceId": 3428401926,
+        "imageURL": "https://res.garmin.com/en/products/010-02638-J0/v/c1_01_md.png",
+        "deviceName": "Forerunner 955",
+        "category": 0
+      }
+    ],
+    "showSelector": false,
+    "lastPrimarySyncDate": "2025-10-05"
+  },
+  "heatAltitudeAcclimationDTO": null
+}

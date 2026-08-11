@@ -1,0 +1,19 @@
+{
+  "startDate": "2025-12-15",
+  "endDate": "2025-12-15",
+  "dateWeightList": [],
+  "totalAverage": {
+    "from": 1765756800000,
+    "until": 1765843199999,
+    "weight": null,
+    "bmi": null,
+    "bodyFat": null,
+    "bodyWater": null,
+    "boneMass": null,
+    "muscleMass": null,
+    "physiqueRating": null,
+    "visceralFat": null,
+    "metabolicAge": null,
+    "trend": null
+  }
+}

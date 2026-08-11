@@ -59,9 +59,9 @@
     "recordedDevices": [
       {
         "deviceId": 3428401926,
-        "imageURL": "https://s3.amazonaws.com/garmin-connect-prod/profile_images/6f94a04f-458f-43a3-a239-785994c5e6a2-71.png",
+        "imageURL": "https://res.garmin.com/en/products/010-02638-J0/v/c1_01_md.png",
         "deviceName": "Forerunner 955",
-        "category": 1
+        "category": 0
       }
     ]
   },
@@ -100,13 +100,13 @@
     "recordedDevices": [
       {
         "deviceId": 3428401926,
-        "imageURL": "https://s3.amazonaws.com/garmin-connect-prod/profile_images/6f94a04f-458f-43a3-a239-785994c5e6a2-71.png",
+        "imageURL": "https://res.garmin.com/en/products/010-02638-J0/v/c1_01_md.png",
         "deviceName": "Forerunner 955",
-        "category": 1
+        "category": 0
       }
     ],
-    "showSelector": true,
-    "lastPrimarySyncDate": null
+    "showSelector": false,
+    "lastPrimarySyncDate": "2026-07-16"
   },
   "heatAltitudeAcclimationDTO": null
 }

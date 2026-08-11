@@ -1,0 +1,112 @@
+{
+  "userId": 77091127,
+  "mostRecentVO2Max": {
+    "userId": 77091127,
+    "generic": {
+      "calendarDate": "2026-01-26",
+      "vo2MaxPreciseValue": 26.5,
+      "vo2MaxValue": 27.0,
+      "fitnessAge": null,
+      "fitnessAgeDescription": null,
+      "maxMetCategory": 0
+    },
+    "cycling": {
+      "calendarDate": "2026-01-26",
+      "vo2MaxPreciseValue": 26.5,
+      "vo2MaxValue": 27.0,
+      "fitnessAge": 79,
+      "fitnessAgeDescription": null,
+      "maxMetCategory": 1
+    },
+    "heatAltitudeAcclimation": {
+      "calendarDate": "2026-02-11",
+      "altitudeAcclimationDate": "2026-02-11",
+      "previousAltitudeAcclimationDate": "2026-02-11",
+      "heatAcclimationDate": "2026-02-11",
+      "previousHeatAcclimationDate": "2026-02-10",
+      "altitudeAcclimation": 0,
+      "previousAltitudeAcclimation": 0,
+      "heatAcclimationPercentage": 91,
+      "previousHeatAcclimationPercentage": 92,
+      "heatTrend": "DEACCLIMATIZING",
+      "altitudeTrend": null,
+      "currentAltitude": 19,
+      "previousAltitude": 0,
+      "acclimationPercentage": 0,
+      "previousAcclimationPercentage": 0,
+      "altitudeAcclimationLocalTimestamp": "2026-02-11T23:54:20.0"
+    }
+  },
+  "mostRecentTrainingLoadBalance": {
+    "userId": 77091127,
+    "metricsTrainingLoadBalanceDTOMap": {
+      "3428401926": {
+        "calendarDate": "2026-02-11",
+        "deviceId": 3428401926,
+        "monthlyLoadAerobicLow": 1228.9583,
+        "monthlyLoadAerobicHigh": 1671.0,
+        "monthlyLoadAnaerobic": 417.2816,
+        "monthlyLoadAerobicLowTargetMin": 614,
+        "monthlyLoadAerobicLowTargetMax": 1668,
+        "monthlyLoadAerobicHighTargetMin": 1317,
+        "monthlyLoadAerobicHighTargetMax": 2370,
+        "monthlyLoadAnaerobicTargetMin": 351,
+        "monthlyLoadAnaerobicTargetMax": 1053,
+        "trainingBalanceFeedbackPhrase": "BALANCED",
+        "primaryTrainingDevice": true
+      }
+    },
+    "recordedDevices": [
+      {
+        "deviceId": 3428401926,
+        "imageURL": "https://res.garmin.com/en/products/010-02638-J0/v/c1_01_md.png",
+        "deviceName": "Forerunner 955",
+        "category": 0
+      }
+    ]
+  },
+  "mostRecentTrainingStatus": {
+    "userId": 77091127,
+    "latestTrainingStatusData": {
+      "3428401926": {
+        "calendarDate": "2026-02-11",
+        "sinceDate": "2026-02-03",
+        "weeklyTrainingLoad": null,
+        "trainingStatus": 4,
+        "timestamp": 1770813589000,
+        "deviceId": 3428401926,
+        "loadTunnelMin": null,
+        "loadTunnelMax": null,
+        "loadLevelTrend": null,
+        "sport": null,
+        "subSport": null,
+        "fitnessTrendSport": "NONE",
+        "fitnessTrend": 0,
+        "trainingStatusFeedbackPhrase": "MAINTAINING_1",
+        "trainingPaused": false,
+        "acuteTrainingLoadDTO": {
+          "acwrPercent": 47,
+          "acwrStatus": "OPTIMAL",
+          "acwrStatusFeedback": "FEEDBACK_2",
+          "dailyTrainingLoadAcute": 1013,
+          "maxTrainingLoadChronic": 1369.5,
+          "minTrainingLoadChronic": 730.4000000000001,
+          "dailyTrainingLoadChronic": 913,
+          "dailyAcuteChronicWorkloadRatio": 1.1
+        },
+        "primaryTrainingDevice": true
+      }
+    },
+    "recordedDevices": [
+      {
+        "deviceId": 3428401926,
+        "imageURL": "https://res.garmin.com/en/products/010-02638-J0/v/c1_01_md.png",
+        "deviceName": "Forerunner 955",
+        "category": 0
+      }
+    ],
+    "showSelector": false,
+    "lastPrimarySyncDate": "2026-02-11"
+  },
+  "heatAltitudeAcclimationDTO": null
+}

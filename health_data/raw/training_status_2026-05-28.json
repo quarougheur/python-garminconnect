@@ -61,6 +61,34 @@
   "mostRecentTrainingStatus": {
     "userId": 77091127,
     "latestTrainingStatusData": {
+      "3633743457": {
+        "calendarDate": "2026-05-28",
+        "sinceDate": "2026-05-28",
+        "weeklyTrainingLoad": null,
+        "trainingStatus": 3,
+        "timestamp": 1779926401000,
+        "deviceId": 3633743457,
+        "loadTunnelMin": null,
+        "loadTunnelMax": null,
+        "loadLevelTrend": null,
+        "sport": null,
+        "subSport": null,
+        "fitnessTrendSport": "NONE",
+        "fitnessTrend": 0,
+        "trainingStatusFeedbackPhrase": "OVERREACHING_2",
+        "trainingPaused": false,
+        "acuteTrainingLoadDTO": {
+          "acwrPercent": 100,
+          "acwrStatus": "VERY_HIGH",
+          "acwrStatusFeedback": "FEEDBACK_5",
+          "dailyTrainingLoadAcute": 535,
+          "maxTrainingLoadChronic": 358.5,
+          "minTrainingLoadChronic": 191.20000000000002,
+          "dailyTrainingLoadChronic": 239,
+          "dailyAcuteChronicWorkloadRatio": 2.2
+        },
+        "primaryTrainingDevice": false
+      },
       "3428401926": {
         "calendarDate": "2026-05-28",
         "sinceDate": "2026-05-27",
@@ -92,14 +120,20 @@
     },
     "recordedDevices": [
       {
+        "deviceId": 3633743457,
+        "imageURL": null,
+        "deviceName": "other.device",
+        "category": null
+      },
+      {
         "deviceId": 3428401926,
-        "imageURL": "https://res.garmin.com/en/products/010-02638-J0/v/c1_01_md.png",
+        "imageURL": "https://s3.amazonaws.com/garmin-connect-prod/profile_images/6f94a04f-458f-43a3-a239-785994c5e6a2-71.png",
         "deviceName": "Forerunner 955",
-        "category": 0
+        "category": 1
       }
     ],
-    "showSelector": false,
-    "lastPrimarySyncDate": "2026-05-28"
+    "showSelector": true,
+    "lastPrimarySyncDate": null
   },
   "heatAltitudeAcclimationDTO": null
 }

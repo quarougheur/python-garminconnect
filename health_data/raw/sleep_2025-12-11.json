@@ -1,0 +1,29 @@
+[
+  {
+    "calendarDate": "2025-12-11",
+    "values": {
+      "remTime": 960,
+      "restingHeartRate": 57,
+      "totalSleepTimeInSeconds": 23640,
+      "respiration": 19.9,
+      "localSleepEndTimeInMillis": 1765437252000,
+      "deepTime": 3240,
+      "awakeTime": 5100,
+      "sleepScoreQuality": "POOR",
+      "spO2": 95.68,
+      "localSleepStartTimeInMillis": 1765408512000,
+      "sleepNeed": 540,
+      "bodyBatteryChange": 17,
+      "gmtSleepStartTimeInMillis": 1765383312000,
+      "gmtSleepEndTimeInMillis": 1765412052000,
+      "hrvStatus": "UNBALANCED",
+      "skinTempF": null,
+      "sleepScore": 34,
+      "skinTempC": null,
+      "lightTime": 19440,
+      "avgOvernightHrv": 30.0,
+      "avgHeartRate": 80.0,
+      "hrv7dAverage": 39.0
+    }
+  }
+]

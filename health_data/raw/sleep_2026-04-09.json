@@ -1,0 +1,29 @@
+[
+  {
+    "calendarDate": "2026-04-09",
+    "values": {
+      "remTime": 0,
+      "restingHeartRate": 53,
+      "totalSleepTimeInSeconds": 16581,
+      "respiration": 18.32,
+      "localSleepEndTimeInMillis": 1775709610000,
+      "deepTime": 6600,
+      "awakeTime": 360,
+      "sleepScoreQuality": "POOR",
+      "spO2": 96.09,
+      "localSleepStartTimeInMillis": 1775692669000,
+      "sleepNeed": 540,
+      "bodyBatteryChange": 32,
+      "gmtSleepStartTimeInMillis": 1775667469000,
+      "gmtSleepEndTimeInMillis": 1775684410000,
+      "hrvStatus": "BALANCED",
+      "skinTempF": null,
+      "sleepScore": 49,
+      "skinTempC": null,
+      "lightTime": 10020,
+      "avgOvernightHrv": 47.0,
+      "avgHeartRate": 63.0,
+      "hrv7dAverage": 43.0
+    }
+  }
+]

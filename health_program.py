@@ -444,6 +444,92 @@ def fmedian(vals):
     return statistics.median(vals) if vals else None
 
 
+def evaluate_latest(daily: list) -> dict:
+    """Green/amber/red evaluation of the most recent day + slow-burn watches.
+    Shared by the PC program, the server, and the monitor."""
+    rows = sorted([r for r in daily if r.get("date")], key=lambda r: str(r["date"]))
+    if not rows:
+        return {"color": "red", "date": "?", "flags": ["no data in history"],
+                "watch": [], "summary": ""}
+    last = rows[-1]
+    date = str(last["date"])
+    rhr_base = fmedian([fnum(r.get("resting_hr")) for r in rows[-90:]])
+    sleep = fnum(last.get("sleep_hours"))
+    hrv = fnum(last.get("hrv_last_night_avg"))
+    rhr = fnum(last.get("resting_hr"))
+    spo2 = fnum(last.get("sleep_avg_spo2"))
+    bal_low = fnum(last.get("hrv_baseline_balanced_low"))
+    low = fnum(last.get("hrv_baseline_low"))
+    readiness = fnum(last.get("readiness_score"))
+
+    flags, hard = [], False
+    if sleep is not None and sleep < SLEEP_FLOOR_H:
+        flags.append(f"sleep {sleep:.1f}h (< {SLEEP_FLOOR_H}h)")
+    if hrv is not None and bal_low is not None and hrv < bal_low:
+        flags.append(f"HRV {hrv:.0f} below balanced ({bal_low:.0f})")
+    if hrv is not None and low is not None and hrv < low:
+        hard = True
+    if rhr is not None and rhr_base is not None and rhr > rhr_base + RHR_AMBER_OVER:
+        flags.append(f"RHR {rhr:.0f} (+{rhr - rhr_base:.0f} over baseline)")
+    if spo2 is not None and spo2 < SPO2_AMBER:
+        flags.append(f"overnight SpO2 {spo2:.1f}% (< {SPO2_AMBER}%)")
+    if spo2 is not None and spo2 < SPO2_RED:
+        hard = True
+    color = "red" if (hard or len(flags) >= 2) else "amber" if flags else "green"
+
+    watch = []
+    sleep7 = fmean([fnum(r.get("sleep_hours")) for r in rows[-7:]])
+    if sleep7 is not None and sleep7 < 6.0:
+        watch.append(f"7d sleep avg {sleep7:.1f}h - chronically short")
+    ready7 = fmean([fnum(r.get("readiness_score")) for r in rows[-7:]])
+    if ready7 is not None and ready7 < 25:
+        watch.append(f"7d readiness avg {ready7:.0f} - persistent under-recovery")
+    rhr3 = [fnum(r.get("resting_hr")) for r in rows[-3:]]
+    if (rhr_base is not None and len([v for v in rhr3 if v is not None]) == 3
+            and all(v is not None and v > rhr_base + RHR_AMBER_OVER for v in rhr3)):
+        watch.append(f"RHR elevated 3 days running (baseline {rhr_base:.0f})")
+
+    bits = []
+    if sleep is not None: bits.append(f"sleep {sleep:.1f}h")
+    if hrv is not None: bits.append(f"HRV {hrv:.0f}ms")
+    if rhr is not None: bits.append(f"RHR {rhr:.0f}")
+    if spo2 is not None: bits.append(f"SpO2 {spo2:.1f}%")
+    if readiness is not None: bits.append(f"readiness {readiness:.0f}")
+    return {"color": color, "date": date, "flags": flags, "watch": watch,
+            "summary": " / ".join(bits)}
+
+
+def send_ntfy(url: str, title: str, body: str, priority: str, tags: str) -> None:
+    import urllib.request
+    req = urllib.request.Request(url, data=body.encode("utf-8"), method="POST")
+    req.add_header("Title", title)
+    req.add_header("Priority", priority)
+    req.add_header("Tags", tags)
+    urllib.request.urlopen(req, timeout=15).read()
+
+
+def notify_evaluation(ev: dict, ntfy_url: str, mode: str, dry: bool) -> None:
+    color = ev["color"]
+    if mode == "warnings" and color == "green" and not ev["watch"]:
+        print("Lamp GREEN, no watch items - no notification sent.")
+        return
+    emoji = {"green": "\U0001F7E2", "amber": "\U0001F7E1", "red": "\U0001F534"}[color]
+    title = f"{emoji} {color.upper()} - morning check {ev['date']}"
+    lines = [ev["summary"]]
+    if ev["flags"]: lines.append("Flags: " + "; ".join(ev["flags"]))
+    if ev["watch"]: lines.append("Watch: " + "; ".join(ev["watch"]))
+    if color == "red": lines.append("Suggested: full rest day regardless of plan.")
+    elif color == "amber": lines.append("Suggested: downgrade today's session to easy.")
+    body = "\n".join(lines)
+    priority = {"green": "default", "amber": "high", "red": "urgent"}[color]
+    tags = {"green": "white_check_mark", "amber": "warning", "red": "rotating_light"}[color]
+    if dry:
+        print(f"[dry-run ntfy] {title}\n{body}")
+    else:
+        send_ntfy(ntfy_url, title, body, priority, tags)
+        print("Notification sent.")
+
+
 def analyze(daily: list, acts: list, vo2: list):
     """Return (insights, actions) over the most recent data."""
     insights, actions = [], []
@@ -628,6 +714,229 @@ def build_plan(daily: list, plan_days: int):
 
 
 # ============================================================================
+# Optional AI analysis (bring your own key: Anthropic or OpenAI)
+# ============================================================================
+AI_PROMPT = (
+    "You are analyzing personal fitness-tracker statistics for the device owner. "
+    "Write a concise narrative analysis (200-300 words): what the trends show, "
+    "any patterns worth noticing across metrics, and 3 specific, practical "
+    "recommendations. Be direct and specific to the numbers. Plain prose, no "
+    "headers or bullet lists. End with one sentence noting this is not medical advice."
+)
+
+
+def build_ai_stats(daily: list, acts: list, vo2: list) -> dict:
+    """Compact summary sent to the AI - aggregates only, never raw history."""
+    rows = sorted([r for r in daily if r.get("date")], key=lambda r: str(r["date"]))[-30:]
+
+    def series(key):
+        return [fnum(r.get(key)) for r in rows]
+
+    def agg(vals):
+        v = [x for x in vals if x is not None]
+        if not v:
+            return None
+        return {"avg": round(statistics.mean(v), 2), "min": min(v), "max": max(v),
+                "first7_avg": round(statistics.mean(v[:7]), 2) if len(v) >= 14 else None,
+                "last7_avg": round(statistics.mean(v[-7:]), 2)}
+
+    weekly_load = {}
+    for a in acts or []:
+        tl = fnum(a.get("training_load"))
+        if tl is None or not a.get("date"):
+            continue
+        dt = datetime.date.fromisoformat(str(a["date"]))
+        monday = (dt - datetime.timedelta(days=dt.weekday())).isoformat()
+        weekly_load[monday] = round(weekly_load.get(monday, 0) + tl)
+
+    vo2s = [fnum(r.get("vo2max")) for r in sorted(vo2 or [], key=lambda r: str(r.get("date")))]
+    vo2s = [v for v in vo2s if v is not None]
+
+    return {
+        "period": f"{rows[0]['date']} to {rows[-1]['date']}" if rows else "no data",
+        "days": len(rows),
+        "sleep_hours": agg(series("sleep_hours")),
+        "sleep_score": agg(series("sleep_score")),
+        "hrv_ms": agg(series("hrv_last_night_avg")),
+        "hrv_balanced_range": [fnum(rows[-1].get("hrv_baseline_balanced_low")),
+                                fnum(rows[-1].get("hrv_baseline_balanced_high"))] if rows else None,
+        "resting_hr": agg(series("resting_hr")),
+        "overnight_spo2_pct": agg(series("sleep_avg_spo2")),
+        "readiness": agg(series("readiness_score")),
+        "steps": agg(series("steps")),
+        "stress": agg(series("avg_stress")),
+        "weight_kg": agg(series("weight_kg")),
+        "weekly_training_load": dict(sorted(weekly_load.items())[-5:]),
+        "vo2max_first_last": [vo2s[0], vo2s[-1]] if len(vo2s) >= 2 else None,
+        "current_lamp": evaluate_latest(daily),
+    }
+
+
+def _pick_gemini_model(api_key: str) -> str:
+    """Query Google's model list and pick the newest generateContent flash
+    model, so retired IDs don't 404."""
+    import re
+    import urllib.request
+    try:
+        req = urllib.request.Request(
+            "https://generativelanguage.googleapis.com/v1beta/models",
+            headers={"x-goog-api-key": api_key})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            models = json.loads(resp.read().decode("utf-8")).get("models", [])
+        names = []
+        for m in models:
+            name = (m.get("name") or "").split("/")[-1]
+            if "generateContent" not in (m.get("supportedGenerationMethods") or []):
+                continue
+            low = name.lower()
+            if "flash" not in low or any(x in low for x in (
+                    "image", "live", "tts", "audio", "thinking", "exp", "preview", "8b")):
+                continue
+            names.append(name)
+        if names:
+            def ver(n):
+                m2 = re.search(r"gemini-(\d+)(?:\.(\d+))?", n)
+                return (int(m2.group(1)), int(m2.group(2) or 0)) if m2 else (0, 0)
+            names.sort(key=ver, reverse=True)
+            return names[0]
+    except Exception:  # noqa: BLE001
+        pass
+    return "gemini-2.5-flash"
+
+
+def ai_narrative(provider: str, api_key: str, model: str, stats: dict) -> str:
+    """Call Anthropic or OpenAI with the compact stats; return the narrative."""
+    import urllib.request
+    user_msg = AI_PROMPT + "\n\nStatistics (JSON):\n" + json.dumps(stats, default=str)
+    if provider == "anthropic":
+        url = "https://api.anthropic.com/v1/messages"
+        payload = {"model": model or "claude-sonnet-4-6", "max_tokens": 1024,
+                   "messages": [{"role": "user", "content": user_msg}]}
+        headers = {"Content-Type": "application/json", "x-api-key": api_key,
+                   "anthropic-version": "2023-06-01"}
+    elif provider == "openai":
+        url = "https://api.openai.com/v1/chat/completions"
+        payload = {"model": model or "gpt-4o-mini", "max_tokens": 1024,
+                   "messages": [{"role": "user", "content": user_msg}]}
+        headers = {"Content-Type": "application/json",
+                   "Authorization": f"Bearer {api_key}"}
+    elif provider == "gemini":
+        gmodel = model or _pick_gemini_model(api_key)
+        url = ("https://generativelanguage.googleapis.com/v1beta/models/"
+               f"{gmodel}:generateContent")
+        payload = {"contents": [{"parts": [{"text": user_msg}]}],
+                   "generationConfig": {"maxOutputTokens": 3000}}
+        headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+    elif provider == "custom":
+        # OpenAI-compatible endpoint: model must be "base_url|model_name"
+        if "|" not in (model or ""):
+            raise ValueError('custom provider needs --ai-model "BASE_URL|MODEL", '
+                             'e.g. "https://api.groq.com/openai/v1|llama-3.3-70b-versatile"')
+        base, cmodel = model.split("|", 1)
+        url = base.rstrip("/") + "/chat/completions"
+        payload = {"model": cmodel, "max_tokens": 1500,
+                   "messages": [{"role": "user", "content": user_msg}]}
+        headers = {"Content-Type": "application/json",
+                   "Authorization": f"Bearer {api_key}"}
+    else:
+        raise ValueError(f"Unknown provider: {provider}")
+    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
+                                 headers=headers, method="POST")
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    if provider == "anthropic":
+        return "".join(b.get("text", "") for b in data.get("content", [])
+                       if b.get("type") == "text").strip()
+    if provider == "gemini":
+        cands = data.get("candidates") or []
+        if not cands:
+            raise ValueError("Gemini returned no candidates (possibly safety-blocked)")
+        parts = cands[0].get("content", {}).get("parts", [])
+        text = "".join(pt.get("text", "") for pt in parts
+                       if not pt.get("thought")).strip()
+        if cands[0].get("finishReason") == "MAX_TOKENS":
+            text += "\n\n[analysis truncated by token limit]"
+        return text
+    return data["choices"][0]["message"]["content"].strip()
+
+
+# ---- AI keyring: per-provider keys saved in <out>/ai_config.json ----------
+def _ai_cfg_path(out_dir: Path) -> Path:
+    return out_dir / "ai_config.json"
+
+
+def _load_ai_cfg(out_dir: Path) -> dict:
+    try:
+        cfg = json.loads(_ai_cfg_path(out_dir).read_text(encoding="utf-8"))
+        if "providers" in cfg:
+            return cfg
+    except Exception:  # noqa: BLE001
+        pass
+    return {"active": "", "providers": {}}
+
+
+def _save_ai_cfg(out_dir: Path, cfg: dict) -> None:
+    path = _ai_cfg_path(out_dir)
+    path.write_text(json.dumps(cfg), encoding="utf-8")
+    try:  # best-effort: owner-only permissions (no-op on Windows)
+        import os as _os
+        _os.chmod(path, 0o600)
+    except OSError:
+        pass
+
+
+def resolve_ai(out_dir: Path, provider: str, cli_key: str, cli_model: str):
+    """Returns (provider, key, model) using CLI > keyring > env var.
+    Saves new keys/models into the keyring. Raises ValueError with a clear
+    message when nothing usable is found."""
+    import os as _os
+    cfg = _load_ai_cfg(out_dir)
+    provider = provider or cfg["active"]
+    if not provider:
+        raise ValueError("no provider given and none saved - use --ai-provider")
+    entry = dict(cfg["providers"].get(provider, {}))
+
+    env_var = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY",
+               "gemini": "GEMINI_API_KEY", "custom": "CUSTOM_AI_KEY"}.get(provider)
+    key = cli_key or entry.get("key") or (_os.getenv(env_var) if env_var else None)
+    if not key:
+        raise ValueError(f"no key for '{provider}' - pass --ai-key once to save it")
+
+    model = cli_model or entry.get("model") or ""
+    if provider == "custom" and "|" not in model:
+        raise ValueError('custom provider needs --ai-model "BASE_URL|MODEL" (saved after first use)')
+
+    # persist anything new
+    changed = False
+    if cli_key and entry.get("key") != cli_key:
+        entry["key"] = cli_key
+        changed = True
+    if cli_model and entry.get("model") != cli_model:
+        entry["model"] = cli_model
+        changed = True
+    if key and not entry.get("key"):
+        entry["key"] = key  # env-sourced key gets saved for next time
+        changed = True
+    if changed or cfg["active"] != provider or provider not in cfg["providers"]:
+        cfg["providers"][provider] = entry
+        cfg["active"] = provider
+        _save_ai_cfg(out_dir, cfg)
+    return provider, key, model
+
+
+def forget_ai_key(out_dir: Path, provider: str) -> str:
+    cfg = _load_ai_cfg(out_dir)
+    if provider not in cfg["providers"]:
+        return f"no saved key for '{provider}'"
+    cfg["providers"].pop(provider)
+    if cfg["active"] == provider:
+        cfg["active"] = next(iter(cfg["providers"]), "")
+    _save_ai_cfg(out_dir, cfg)
+    remaining = ", ".join(cfg["providers"]) or "none"
+    return f"removed '{provider}' key (remaining: {remaining})"
+
+
+# ============================================================================
 # RENDER - offline dashboard with embedded history + range selector
 # ============================================================================
 HTML_TEMPLATE = r"""<!DOCTYPE html>
@@ -713,6 +1022,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     letter-spacing:0.08em; text-transform:uppercase; display:flex; justify-content:space-between;
     align-items:baseline; gap:10px; flex-wrap:wrap; }
   .card h3 .note { font-size:10px; color:var(--dim); letter-spacing:0; text-transform:none; font-weight:400; }
+  .ci { margin-top:6px; border-left:3px solid var(--dim); border-radius:4px;
+    background:#0e152066; padding:6px 10px; font-size:11px; color:var(--mist); line-height:1.5; }
+  .ci.good { border-left-color:var(--green); }
+  .ci.warn { border-left-color:var(--amber); }
+  .ci.bad { border-left-color:var(--red); }
   .chartbox { margin-top:8px; }
   .chartbox svg { display:block; width:100%; height:auto; }
   .legend { display:flex; flex-wrap:wrap; gap:12px; margin:6px 0 4px; font-size:10px; color:var(--mist); }
@@ -814,6 +1128,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <h2 class="sect">Insights</h2>
   <div class="sect-note">Computed on the most recent data at build time (not the selected range).</div>
   <div class="insight-grid" id="insights"></div>
+
+  <div id="aiWrap" hidden>
+    <h2 class="sect">AI analysis <span style="font-size:11px;color:var(--dim);letter-spacing:0;text-transform:none;" id="aiMeta"></span></h2>
+    <div class="actions" style="padding:16px 18px;"><div id="aiText" style="font-size:12.5px;line-height:1.7;color:var(--snow);white-space:pre-wrap;"></div></div>
+  </div>
 
   <h2 class="sect">Recommended actions</h2>
   <div class="actions"><ol id="actions"></ol></div>
@@ -985,6 +1304,26 @@ function legend(id,items,chartKey){ const box=document.getElementById(id); box.i
       s.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();flip();} }); }
     box.appendChild(s); }); }
 
+function setChartInsight(containerId, level, text){
+  const box=document.getElementById(containerId); if(!box) return;
+  const card=box.closest?box.closest('.card'):null; if(!card) return;
+  let ci=card.querySelector('.ci');
+  if(!text){ if(ci) ci.remove(); return; }
+  if(!ci){ ci=document.createElement('div');
+    const h3=card.querySelector('h3');
+    h3&&h3.nextSibling?card.insertBefore(ci,h3.nextSibling):card.appendChild(ci); }
+  ci.className='ci '+level; ci.textContent=text;
+}
+function trendOf(vals){ // second half avg minus first half avg
+  const v=vals.filter(x=>x!=null&&!isNaN(x));
+  if(v.length<6) return null;
+  const h=Math.floor(v.length/2);
+  return mean(v.slice(h))-mean(v.slice(0,h));
+}
+function arrow(d,dec=1){ if(d==null) return '\u2013';
+  const r=Math.round(d*Math.pow(10,dec))/Math.pow(10,dec);
+  return r>0?('\u2197 +'+r):r<0?('\u2198 '+r):'\u2192 flat'; }
+
 function evalDay(row,baseRhr,th){
   const flags=[]; let hard=false;
   const sleep=num(row.sleep_hours), hrv=num(row.hrv_last_night_avg),
@@ -1096,6 +1435,9 @@ function render(){
     const t1=document.createElement('div'); t1.className='t'; t1.textContent=ins.title;
     const t2=document.createElement('div'); t2.className='x'; t2.textContent=ins.detail;
     d.appendChild(t1); d.appendChild(t2); ig.appendChild(d); });
+  if(EMBED.ai&&EMBED.ai.text){ document.getElementById('aiWrap').hidden=false;
+    document.getElementById('aiText').textContent=EMBED.ai.text;
+    document.getElementById('aiMeta').textContent='— '+(EMBED.ai.provider||'')+' · '+(EMBED.ai.when||''); }
   const ao=document.getElementById('actions'); ao.innerHTML='';
   (EMBED.actions.length?EMBED.actions:['No corrective actions needed — hold the current routine.'])
     .forEach(a=>{ const li=document.createElement('li'); li.textContent=a; ao.appendChild(li); });
@@ -1222,6 +1564,77 @@ function render(){
     if(p.constants) row.querySelector('.cn').textContent=p.constants;
     pl.appendChild(row); });
 
+  // ---- per-chart insights (computed over the selected range) ----
+  (function(){
+    const lvl=(good,warn,v)=>v==null?'':(good(v)?'good':warn(v)?'warn':'bad');
+
+    const sAvg=avgOf(sleepH), sTrend=trendOf(sleepH);
+    const short=sleepH.filter(v=>v!=null&&v<th.sleep).length;
+    setChartInsight('cSleep', lvl(v=>v>=7,v=>v>=6,sAvg), sAvg==null?null:
+      'Avg '+fmt1(sAvg)+'h vs 7h target \u00b7 '+short+' night(s) under '+th.sleep+'h \u00b7 trend '+arrow(sTrend)+'h');
+
+    if(hasStages){
+      const tot=rows.map(r=>{const t=(num(r.deep_sleep_min)||0)+(num(r.light_sleep_min)||0)
+        +(num(r.rem_sleep_min)||0); return t||null;});
+      const dPct=avgOf(rows.map((r,i)=>{const d=num(r.deep_sleep_min),t=tot[i];
+        return d!=null&&t?d/t*100:null;}));
+      const rPct=avgOf(rows.map((r,i)=>{const d=num(r.rem_sleep_min),t=tot[i];
+        return d!=null&&t?d/t*100:null;}));
+      setChartInsight('cStages', dPct==null?'':(dPct>=13?'good':'warn'), dPct==null?null:
+        'Deep '+fmt1(dPct)+'% \u00b7 REM '+fmt1(rPct)+'% of sleep (typical ~13-23% deep, ~20-25% REM)');
+    }
+
+    const hAvg=avgOf(rows.map(r=>num(r.hrv_last_night_avg))), hTrend=trendOf(rows.map(r=>num(r.hrv_last_night_avg)));
+    const bl=num(last.hrv_baseline_balanced_low);
+    setChartInsight('cHrv', hAvg==null?'':(bl==null||hAvg>=bl?'good':'bad'), hAvg==null?null:
+      'Avg '+fmt1(hAvg)+' ms'+(bl!=null?' vs balanced floor '+bl:'')+' \u00b7 trend '+arrow(hTrend)+' ms');
+
+    const rAvg=avgOf(rows.map(r=>num(r.resting_hr))), rTrend=trendOf(rows.map(r=>num(r.resting_hr)));
+    const rDelta=(rAvg!=null&&baseRhr!=null)?rAvg-baseRhr:null;
+    setChartInsight('cRhr', rDelta==null?'':(rDelta<=2?'good':rDelta<=th.rhr?'warn':'bad'), rAvg==null?null:
+      'Avg '+fmt1(rAvg)+' bpm ('+(rDelta>=0?'+':'')+fmt1(rDelta)+' vs baseline) \u00b7 trend '+arrow(rTrend)+' bpm');
+
+    const oAvg=avgOf(rows.map(r=>num(r.sleep_avg_spo2)));
+    const lowN=rows.filter(r=>{const v=num(r.sleep_avg_spo2);return v!=null&&v<th.spo2;}).length;
+    setChartInsight('cSpo2', oAvg==null?'':(oAvg>=95?'good':oAvg>=th.spo2?'warn':'bad'), oAvg==null?null:
+      'Avg overnight '+fmt1(oAvg)+'% \u00b7 '+lowN+' night(s) below '+th.spo2+'%');
+
+    const rdAvg=avgOf(ready), lowR=ready.filter(v=>v!=null&&v<30).length;
+    setChartInsight('cReady', rdAvg==null?'':(rdAvg>=55?'good':rdAvg>=30?'warn':'bad'), rdAvg==null?null:
+      'Avg '+fmt1(rdAvg)+'/100 \u00b7 '+lowR+' day(s) below 30 \u00b7 trend '+arrow(trendOf(ready),0));
+
+    const stAvg=avgOf(steps), best=Math.max(...steps.filter(v=>v!=null),0);
+    setChartInsight('cSteps', stAvg==null?'':(stAvg>=8000?'good':stAvg>=5000?'warn':'bad'), stAvg==null?null:
+      'Avg '+Math.round(stAvg).toLocaleString()+'/day \u00b7 best '+Math.round(best).toLocaleString()+' \u00b7 trend '+arrow(trendOf(steps),0));
+
+    const aAvg=avgOf(totalActiveH);
+    const vShare=avgOf(rows.map((r,i)=>{const m=modH[i],v=vigH[i];
+      const t=(m||0)+(v||0); return t?(v||0)/t*100:null;}));
+    setChartInsight('cActive', aAvg==null?'':(aAvg>=1?'good':aAvg>=0.5?'warn':'bad'), aAvg==null?null:
+      'Avg '+fmt1(aAvg)+' h/day intensity time \u00b7 vigorous share '+fmt1(vShare)+'%');
+
+    if(hasW){ const wv=weights.filter(v=>v!=null);
+      setChartInsight('cWeight','good', wv.length<2?null:
+        'From '+fmt1(wv[0])+' to '+fmt1(wv[wv.length-1])+' kg ('+arrow(wv[wv.length-1]-wv[0])+' kg over range)'); }
+
+    if(actsAll.length){
+      const wk2=d=>{const dt=new Date(String(d)+'T00:00:00');const m=new Date(dt);
+        m.setDate(dt.getDate()-((dt.getDay()+6)%7));return m.toISOString().slice(0,10);};
+      const totals2={}; actsAll.forEach(a=>{const w=wk2(a.date);
+        totals2[w]=(totals2[w]||0)+num(a.training_load);});
+      const ws=Object.keys(totals2).sort();
+      const lastW=totals2[ws[ws.length-1]], prevW=ws.length>1?totals2[ws[ws.length-2]]:null;
+      setChartInsight('cLoad', prevW==null?'':(lastW/prevW>1.4?'warn':'good'),
+        'Latest week '+fmt1(lastW)+(prevW!=null?' vs prior '+fmt1(prevW)+' ('+arrow((lastW/prevW-1)*100,0)+'%)':''));
+    }
+
+    if(vo2All.length>=2){
+      const vv=vo2All.map(r=>num(r.vo2max)).filter(v=>v!=null);
+      if(vv.length>=2) setChartInsight('cVo2', vv[vv.length-1]>=vv[0]?'good':'warn',
+        'From '+fmt1(vv[0])+' to '+fmt1(vv[vv.length-1])+' ('+arrow(vv[vv.length-1]-vv[0])+' over range)');
+    }
+  })();
+
   // footer stats over the selected range
   const s=rows.map(r=>num(r.sleep_hours)).filter(v=>v!=null);
   const lc=rows.map(r=>evalDay(r,baseRhr,th).color)
@@ -1239,10 +1652,10 @@ setRangeDays(30);
 """
 
 
-def render_dashboard(out_path: Path, daily, acts, vo2, insights, actions, plan):
+def render_dashboard(out_path: Path, daily, acts, vo2, insights, actions, plan, ai=None):
     embed = {
         "daily": daily, "acts": acts, "vo2": vo2,
-        "insights": insights, "actions": actions, "plan": plan,
+        "insights": insights, "actions": actions, "plan": plan, "ai": ai,
         "built": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
     }
     html = (HTML_TEMPLATE
@@ -1268,10 +1681,25 @@ def main() -> None:
                    help="Skip Garmin fetch; rebuild dashboard from stored history")
     p.add_argument("--tokenstore", default=None)
     p.add_argument("--delay", type=float, default=1.0)
+    p.add_argument("--ntfy", help="ntfy topic URL for push warnings after each run")
+    p.add_argument("--notify-mode", choices=["warnings", "always"], default="warnings")
+    p.add_argument("--notify-dry", action="store_true", help="print notification instead of sending")
+    p.add_argument("--ai-provider", choices=["anthropic", "openai", "gemini", "custom"],
+                   help="AI narrative provider; keys are remembered per provider after first use")
+    p.add_argument("--ai", action="store_true",
+                   help="run AI analysis with the saved active provider")
+    p.add_argument("--ai-key", help="API key - saved for the provider; omit to reuse the stored one")
+    p.add_argument("--ai-model", help="model override; for custom: \"BASE_URL|MODEL\" (also remembered)")
+    p.add_argument("--ai-forget", metavar="PROVIDER",
+                   help="remove the saved key for a provider and exit")
     args = p.parse_args()
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    if args.ai_forget:
+        print(forget_ai_key(out_dir, args.ai_forget))
+        return
     raw_dir = out_dir / "raw"
     raw_dir.mkdir(exist_ok=True)
 
@@ -1322,6 +1750,14 @@ def main() -> None:
         if not daily:
             sys.exit("No daily_master.csv found - run without --skip-fetch first.")
 
+    # daily lamp evaluation + optional push warning
+    ev = evaluate_latest(daily)
+    print(f"\nLamp {ev['color'].upper()} for {ev['date']}"
+          + (f" - {'; '.join(ev['flags'])}" if ev["flags"] else " - all clear")
+          + (f" | watch: {'; '.join(ev['watch'])}" if ev["watch"] else ""))
+    if args.ntfy or args.notify_dry:
+        notify_evaluation(ev, args.ntfy or "", args.notify_mode, args.notify_dry or not args.ntfy)
+
     print("\nAnalyzing...")
     insights, actions = analyze(daily, acts, vo2)
     for i in insights:
@@ -1330,8 +1766,24 @@ def main() -> None:
     plan = build_plan(daily, args.plan_days)
     print(f"\nPlan: {len(plan)} days ({plan[0]['date']} -> {plan[-1]['date']})")
 
+    ai = None
+    if args.ai_provider or args.ai:
+        try:
+            provider, key, model = resolve_ai(out_dir, args.ai_provider or "",
+                                              args.ai_key or "", args.ai_model or "")
+            print(f"Requesting AI analysis from {provider}...")
+            stats = build_ai_stats(daily, acts, vo2)
+            text = ai_narrative(provider, key, model, stats)
+            ai = {"text": text, "provider": provider,
+                  "when": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}
+            print("AI analysis received.")
+        except ValueError as err:
+            print(f"AI analysis skipped: {err}")
+        except Exception as err:  # noqa: BLE001
+            print(f"AI analysis failed (dashboard still built): {type(err).__name__}: {err}")
+
     dash = out_dir / "dashboard.html"
-    render_dashboard(dash, daily, acts, vo2, insights, actions, plan)
+    render_dashboard(dash, daily, acts, vo2, insights, actions, plan, ai)
     print(f"\nDashboard written: {dash.resolve()}")
     print("Open it in any browser - fully offline, all history embedded.")
 

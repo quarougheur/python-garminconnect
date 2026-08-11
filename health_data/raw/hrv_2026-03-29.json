@@ -1,0 +1,20 @@
+{
+  "hrvSummaries": [
+    {
+      "calendarDate": "2026-03-29",
+      "weeklyAvg": 38,
+      "lastNightAvg": 38,
+      "lastNight5MinHigh": 80,
+      "baseline": {
+        "lowUpper": 32,
+        "balancedLow": 36,
+        "balancedUpper": 58,
+        "markerValue": 0.29544067
+      },
+      "status": "BALANCED",
+      "feedbackPhrase": "HRV_BALANCED_2",
+      "createTimeStamp": "2026-03-28T23:31:14.727"
+    }
+  ],
+  "userProfilePk": 77091127
+}
