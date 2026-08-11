@@ -1,0 +1,41 @@
+{
+  "startDate": "2026-05-20",
+  "endDate": "2026-05-20",
+  "dateWeightList": [
+    {
+      "samplePk": 1779264783407,
+      "date": 1779235200000,
+      "calendarDate": "2026-05-20",
+      "weight": 85800.0,
+      "bmi": null,
+      "bodyFat": null,
+      "bodyWater": null,
+      "boneMass": null,
+      "muscleMass": null,
+      "physiqueRating": null,
+      "visceralFat": null,
+      "metabolicAge": null,
+      "sourceType": "MFP",
+      "timestampGMT": 1779264749000,
+      "weightDelta": 1200.0000000000027,
+      "trend": {
+        "weight": 86658.0,
+        "weightChange": 1212.0
+      }
+    }
+  ],
+  "totalAverage": {
+    "from": 1779235200000,
+    "until": 1779321599999,
+    "weight": 85800.0,
+    "bmi": null,
+    "bodyFat": null,
+    "bodyWater": null,
+    "boneMass": null,
+    "muscleMass": null,
+    "physiqueRating": null,
+    "visceralFat": null,
+    "metabolicAge": null,
+    "trend": null
+  }
+}

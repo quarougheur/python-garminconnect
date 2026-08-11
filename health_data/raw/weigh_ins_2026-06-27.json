@@ -1,0 +1,19 @@
+{
+  "startDate": "2026-06-27",
+  "endDate": "2026-06-27",
+  "dateWeightList": [],
+  "totalAverage": {
+    "from": 1782518400000,
+    "until": 1782604799999,
+    "weight": null,
+    "bmi": null,
+    "bodyFat": null,
+    "bodyWater": null,
+    "boneMass": null,
+    "muscleMass": null,
+    "physiqueRating": null,
+    "visceralFat": null,
+    "metabolicAge": null,
+    "trend": null
+  }
+}

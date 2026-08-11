@@ -1,0 +1,70 @@
+{
+  "userProfilePK": 77091127,
+  "calendarDate": "2026-06-22",
+  "startTimestampGMT": "2026-06-21T17:00:00.0",
+  "endTimestampGMT": "2026-06-22T17:00:00.0",
+  "startTimestampLocal": "2026-06-22T00:00:00.0",
+  "endTimestampLocal": "2026-06-23T00:00:00.0",
+  "sleepStartTimestampGMT": "2026-06-21T21:01:21.0",
+  "sleepEndTimestampGMT": "2026-06-22T00:44:21.0",
+  "sleepStartTimestampLocal": "2026-06-22T04:01:21.0",
+  "sleepEndTimestampLocal": "2026-06-22T07:44:21.0",
+  "tomorrowSleepStartTimestampGMT": "2026-06-22T19:10:59.0",
+  "tomorrowSleepEndTimestampGMT": "2026-06-22T21:30:59.0",
+  "tomorrowSleepStartTimestampLocal": "2026-06-23T02:10:59.0",
+  "tomorrowSleepEndTimestampLocal": "2026-06-23T04:30:59.0",
+  "averageSpO2": 92.0,
+  "lowestSpO2": 82,
+  "lastSevenDaysAvgSpO2": 93.28571428571429,
+  "latestSpO2": 93,
+  "latestSpO2TimestampGMT": "2026-06-22T17:00:00.0",
+  "latestSpO2TimestampLocal": "2026-06-23T00:00:00.0",
+  "avgSleepSpO2": 94.0,
+  "avgTomorrowSleepSpO2": 94.0,
+  "spO2ValueDescriptorsDTOList": [
+    {
+      "spo2ValueDescriptorIndex": 0,
+      "spo2ValueDescriptorKey": "timestamp"
+    },
+    {
+      "spo2ValueDescriptorIndex": 1,
+      "spo2ValueDescriptorKey": "spo2Reading"
+    },
+    {
+      "spo2ValueDescriptorIndex": 2,
+      "spo2ValueDescriptorKey": "singleReadingPlottable"
+    }
+  ],
+  "spO2SingleValues": null,
+  "continuousReadingDTOList": null,
+  "spO2HourlyAverages": [
+    [
+      1782061200000,
+      91
+    ],
+    [
+      1782064800000,
+      90
+    ],
+    [
+      1782068400000,
+      90
+    ],
+    [
+      1782072000000,
+      92
+    ],
+    [
+      1782075600000,
+      91
+    ],
+    [
+      1782140400000,
+      95
+    ],
+    [
+      1782144000000,
+      95
+    ]
+  ]
+}
